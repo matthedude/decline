@@ -4,6 +4,8 @@ import java.net.{URI, URISyntaxException}
 
 import cats.data.{Validated, ValidatedNel}
 
+import scala.concurrent.duration.Duration
+
 trait Argument[A] { self =>
   def defaultMetavar: String
   def read(string: String): ValidatedNel[String, A]
@@ -20,7 +22,7 @@ object Argument extends PlatformArguments {
     override def defaultMetavar: String = "string"
   }
 
-  private def readNum[A](typeName: String)(parse: String => A): Argument[A] = new Argument[A] {
+  private def readValueNumericDimension[A](typeName: String)(parse: String => A): Argument[A] = new Argument[A] {
     override def read(string: String): ValidatedNel[String, A] =
       try Validated.valid(parse(string))
       catch { case nfe: NumberFormatException => Validated.invalidNel(s"Invalid $typeName: $string") }
@@ -28,12 +30,13 @@ object Argument extends PlatformArguments {
     override def defaultMetavar: String = typeName
   }
 
-  implicit val readInt: Argument[Int] = readNum("integer")(_.toInt)
-  implicit val readLong: Argument[Long] = readNum("integer")(_.toLong)
-  implicit val readBigInt: Argument[BigInt] = readNum("integer")(BigInt(_))
-  implicit val readFloat: Argument[Float] = readNum("floating-point")(_.toFloat)
-  implicit val readDouble: Argument[Double] = readNum("floating-point")(_.toDouble)
-  implicit val readBigDecimal: Argument[BigDecimal] = readNum("decimal")(BigDecimal(_))
+  implicit val readInt: Argument[Int] = readValueNumericDimension("integer")(_.toInt)
+  implicit val readLong: Argument[Long] = readValueNumericDimension("integer")(_.toLong)
+  implicit val readBigInt: Argument[BigInt] = readValueNumericDimension("integer")(BigInt(_))
+  implicit val readFloat: Argument[Float] = readValueNumericDimension("floating-point")(_.toFloat)
+  implicit val readDouble: Argument[Double] = readValueNumericDimension("floating-point")(_.toDouble)
+  implicit val readBigDecimal: Argument[BigDecimal] = readValueNumericDimension("decimal")(BigDecimal(_))
+  implicit val readDuration: Argument[Duration] = readValueNumericDimension("duration")(Duration(_))
 
   implicit val readURI: Argument[URI] = new Argument[URI] {
 

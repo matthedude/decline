@@ -1,11 +1,11 @@
 package com.monovore.decline
 
-import java.nio.file.{Path, Paths}
-
 import cats.data.Validated._
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalatest.{Matchers, WordSpec}
+
+import scala.concurrent.duration.Duration
 
 class ArgumentSpec extends WordSpec with Matchers with GeneratorDrivenPropertyChecks {
 
@@ -28,6 +28,25 @@ class ArgumentSpec extends WordSpec with Matchers with GeneratorDrivenPropertyCh
 
     "parse big integers" in forAll { int: BigInt =>
       Argument[BigInt].read(int.toString) should equal(Valid(int))
+    }
+  }
+
+  "Duration arguments" should {
+
+    implicit val arbDuration: Arbitrary[Duration] =
+      Arbitrary(Gen.frequency(
+        1 -> Gen.const(Duration.Inf),
+        1 -> Gen.const(Duration.MinusInf),
+        1 -> Gen.const(Duration.Zero),
+        6 -> Gen.chooseNum(Long.MinValue + 1, Long.MaxValue).map(Duration.fromNanos)))
+
+    def string(duration: Duration) = duration match {
+      case d@(Duration.Inf | Duration.MinusInf) => d.toString.split("\\.")(1)
+      case d => d.toString
+    }
+
+    "parse durations" in forAll { duration: Duration =>
+      Argument[Duration].read(string(duration)) should equal(Valid(duration))
     }
   }
 }
